@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --check \"c:\\\\xampp\\\\htdocs\\\\apps\\\\attraction-study\\\\assets\\\\js\\\\app.js\")"
+    ]
+  }
+}
