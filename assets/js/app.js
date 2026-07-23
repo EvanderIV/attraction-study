@@ -769,7 +769,9 @@
       saveState();
     });
     lab.appendChild(cb);
-    lab.appendChild(el("span", "", "Share my answer publicly (anonymous)"));
+    lab.appendChild(el("span", "pub-box",
+      `<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="#0b0f1e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`));
+    lab.appendChild(el("span", "pub-label", "Share my answer publicly (anonymous)"));
     foot.appendChild(lab);
 
     const nextBtn = el("button", "btn", "Next");

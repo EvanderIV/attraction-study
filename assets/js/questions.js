@@ -470,7 +470,7 @@
       type: "text",
       kicker: "Last one",
       title: "What’s an unspoken fantasy you’d want in a {partner}?",
-      sub: "A sentence or two — keep it PG-13. Anonymous either way; public answers may be shown (filtered) to other quiz-takers.",
+      sub: "A sentence or two — keep it PG-13. Anonymous either way; public answers may be shown to other quiz-takers.",
       placeholder: "I’ve always wished for…",
     },
   ];
