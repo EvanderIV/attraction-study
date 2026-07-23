@@ -468,9 +468,10 @@
     {
       id: "fantasy",
       type: "text",
-      kicker: "Last one",
+      optional: true,     // skippable — but the wheel holds 0.5s so it's seen
+      kicker: "Last one — optional",
       title: "What’s an unspoken fantasy you’d want in a {partner}?",
-      sub: "A sentence or two — keep it PG-13. Anonymous either way; public answers may be shown to other quiz-takers.",
+      sub: "A sentence or two — keep it PG-13, or skip ahead if nothing comes to mind. Anonymous either way; public answers may be shown to other quiz-takers.",
       placeholder: "I’ve always wished for…",
     },
   ];

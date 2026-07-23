@@ -163,6 +163,7 @@
   function isAnswered(card) {
     if (!card) return false;
     if (["info", "statpct", "scatter", "share"].includes(card.type)) return true;
+    if (card.optional) return true;   // never gates the wheel (see dwell lock in go)
     if (card.type === "submit") return state.done;
     const a = state.answers[card.id];
     if (a === undefined || a === null) return false;
@@ -212,6 +213,7 @@
 
     const max = maxReachable();
     state.index = Math.min(keepIndex !== undefined ? keepIndex : state.index, max);
+    armDwell(deck[state.index]);   // restored onto an optional card
     target = state.index;
     if (Math.abs(pos - target) > 3) pos = target;   // avoid long flights after rebuild
     updateChrome();
@@ -944,17 +946,38 @@
 
   // ---- Navigation & gating ----------------------------------------------
 
-  function go(i) {
+  // Optional cards don't gate the wheel, but hold it briefly on FIRST
+  // arrival (once per page session) so they're at least seen before they
+  // can be flicked past. Revisits scroll through freely.
+  let dwellLockUntil = 0;
+  const dwelledCards = new Set();
+
+  function armDwell(card) {
+    if (card && card.optional && !dwelledCards.has(card.id)) {
+      dwelledCards.add(card.id);
+      dwellLockUntil = performance.now() + 500;
+    }
+  }
+
+  function go(i, force) {
     const max = maxReachable();
     if (i < 0) i = 0;
     if (i >= deck.length) i = deck.length - 1;
+    // Forward moves one card at a time (drag flicks can't skip an optional
+    // card entirely); backward jumps and programmatic moves are unrestricted.
+    if (!force && i > state.index + 1) i = state.index + 1;
     if (i > max) {
       blockedFeedback();
       i = max;
     }
+    if (!force && i > state.index && deck[state.index] && deck[state.index].optional
+        && performance.now() < dwellLockUntil) {
+      i = state.index;   // still inside the dwell window — hold
+    }
     if (i !== state.index) {
       state.index = i;
       saveState();
+      armDwell(deck[i]);
     }
     target = i;
     updateChrome();
@@ -1152,7 +1175,7 @@
         state.done = true;
         saveState();
         rebuildDeck(idxOf("_submit") >= 0 ? idxOf("_submit") : state.index);
-        go(deck.length - 1);
+        go(deck.length - 1, true);
         toast("This device has already submitted a response");
       }
       if (state.done) fetchStats();   // returning visitor: results still browsable
