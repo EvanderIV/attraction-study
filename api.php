@@ -82,7 +82,7 @@ function cleanHash(mixed $v): ?string {
 
 /** Question ids whose answer distributions are shared with clients. */
 function statWhitelisted(string $qid): bool {
-    if (preg_match('/^(l_|v_|p_)/', $qid)) return true;
+    if (preg_match('/^(l_|v_|p_|g_)/', $qid)) return true;
     return in_array($qid, [
         'looks_importance', 'fitness_importance', 'intelligence_importance',
         'looks_vs_personality', 'first_notice', 'single_feature',

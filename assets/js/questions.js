@@ -75,6 +75,10 @@
       vars = { partner: "Partner", they: "they", them: "them", their: "their", theirs: "theirs", themself: "themselves", theyre: "they're", s: "" };
     }
 
+    // Respondent's own sex, for text like "shown to other male quiz-takers"
+    // (public fantasies are distributed to same-sex respondents).
+    vars.mysex = sex === "Male" ? "male" : "female";
+
     return { sex, orient, targetSex, vars };
   }
 
@@ -206,6 +210,21 @@
       title: "Ideal height for your {partner}, relative to you?",
       options: ["Much taller", "A little taller", "About my height", "Shorter than me", "Doesn’t matter"],
     },
+    // Gender-dynamic expectation probes (g_ prefix), sex-targeted like v_.
+    {
+      id: "g_f_stronger",
+      onlyForSex: "Female",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to be much stronger than me.",
+    },
+    {
+      id: "g_m_weaker",
+      onlyForSex: "Male",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to be weaker than me.",
+    },
     {
       id: "l_desire",   // pilot DI: 3
       type: "likert",
@@ -252,6 +271,20 @@
       title: "How important is it that {they} stay{s} physically fit?",
       min: 1, max: 7,
       lowLabel: "Not at all", highLabel: "Deal-breaker",
+    },
+    {
+      id: "g_f_benchpress",
+      onlyForSex: "Female",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to be able to bench-press me.",
+    },
+    {
+      id: "g_m_act_cute",
+      onlyForSex: "Male",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to act cute around me.",
     },
     {
       id: "l_gifts",   // pilot DI: 3
@@ -321,6 +354,20 @@
       ],
     },
     {
+      id: "g_f_deep_voice",
+      onlyForSex: "Female",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to use a deep voice around me.",
+    },
+    {
+      id: "g_m_soft_voice",
+      onlyForSex: "Male",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to use a soft voice with me.",
+    },
+    {
       id: "l_charity",   // pilot DI: 3
       type: "likert",
       kicker: "Agree or disagree?",
@@ -373,6 +420,20 @@
       type: "likert",
       kicker: "Agree or disagree?",
       title: "I want my {partner} to give me some space when I feel down.",
+    },
+    {
+      id: "g_f_act_strong",
+      onlyForSex: "Female",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to act strong for me.",
+    },
+    {
+      id: "g_m_dependent",
+      onlyForSex: "Male",
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to be dependent on me.",
     },
     {
       id: "v_m_win",   // low maturity: winning over understanding
@@ -466,12 +527,18 @@
       options: ["Loyalty", "Humor", "Ambition", "Kindness", "Intelligence", "Passion", "Stability", "Adventurousness"],
     },
     {
+      id: "g_special_love",   // shown to everyone — tees up the fantasy card
+      type: "likert",
+      kicker: "Agree or disagree?",
+      title: "I want my {partner} to love me in a special (perhaps unconventional) way.",
+    },
+    {
       id: "fantasy",
       type: "text",
       optional: true,     // skippable — but the wheel holds 0.5s so it's seen
       kicker: "Last one — optional",
       title: "What’s an unspoken fantasy you’d want in a {partner}?",
-      sub: "A sentence or two — keep it PG-13, or skip ahead if nothing comes to mind. Anonymous either way; public answers may be shown to other quiz-takers.",
+      sub: "A sentence or two — keep it PG-13, or skip ahead if nothing comes to mind. Anonymous either way; public answers may be shown to other {mysex} quiz-takers.",
       placeholder: "I’ve always wished for…",
     },
   ];
