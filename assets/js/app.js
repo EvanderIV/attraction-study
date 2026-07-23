@@ -635,7 +635,7 @@
   }
 
   async function fetchStats() {
-    if (!state.fp) return;
+    await ensureFingerprint();
     try {
       const res = await api("stats", { fingerprint: state.fp });
       if (res.ok) {
@@ -935,6 +935,31 @@
 
   // ---- Server I/O -------------------------------------------------------
 
+  // Resolve the device fingerprint, tolerating a blocked/broken module.
+  // Ad blockers strip scripts with "fingerprint" in the URL (hence the file
+  // is named device-id.js) — but if anything still fails, fall back to a
+  // stable random id in localStorage. Dedup degrades from per-device to
+  // per-browser for those users; submission must never hard-fail on this.
+  async function ensureFingerprint() {
+    if (state.fp) return state.fp;
+    try {
+      if (window.StudyFingerprint) state.fp = await window.StudyFingerprint.compute();
+    } catch (e) { /* fall through to fallback */ }
+    if (!state.fp) {
+      let fid = null;
+      try { fid = localStorage.getItem("as_fid"); } catch (e) {}
+      if (!fid || !/^[0-9a-f]{64}$/.test(fid)) {
+        const bytes = new Uint8Array(32);
+        if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+        else for (let i = 0; i < 32; i++) bytes[i] = Math.floor(Math.random() * 256);
+        fid = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+        try { localStorage.setItem("as_fid", fid); } catch (e) {}
+      }
+      state.fp = { device: fid, browser: fid };
+    }
+    return state.fp;
+  }
+
   async function api(action, payload) {
     const r = await fetch(`${API}?action=${action}`, {
       method: "POST",
@@ -948,6 +973,7 @@
   }
 
   async function submitAnswers() {
+    await ensureFingerprint();
     return api("submit", {
       fingerprint: state.fp,
       profile: profile ? { sex: profile.sex, orientation: profile.orient, targetSex: profile.targetSex } : null,
@@ -974,7 +1000,7 @@
     // immediately. If this device already submitted, we surface it via the
     // submit card (and a toast if they're mid-quiz).
     try {
-      state.fp = await window.StudyFingerprint.compute();
+      await ensureFingerprint();
       const res = await api("check", { fingerprint: state.fp });
       if (res.submitted && !state.done) {
         state.alreadySubmitted = true;

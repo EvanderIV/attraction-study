@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0b0f1e">
 <title>The Attraction Study</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="assets/css/style.css?v=8">
+<link rel="stylesheet" href="assets/css/style.css?v=9">
 </head>
 <body>
   <!-- Animated gradient backdrop (parallax layers driven by JS) -->
@@ -40,8 +40,8 @@
   <!-- Toast for gate messages -->
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <script src="assets/js/fingerprint.js?v=8"></script>
-  <script src="assets/js/questions.js?v=8"></script>
-  <script src="assets/js/app.js?v=8"></script>
+  <script src="assets/js/device-id.js?v=9"></script>
+  <script src="assets/js/questions.js?v=9"></script>
+  <script src="assets/js/app.js?v=9"></script>
 </body>
 </html>
