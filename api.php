@@ -149,6 +149,30 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     fail('method_not_allowed', 405);
 }
 
+// Deployment self-check: POST api.php?action=diag (no body needed).
+// Reports environment booleans only — safe to leave enabled.
+if (($_GET['action'] ?? '') === 'diag') {
+    $dbOpen = false;
+    $dbError = null;
+    try {
+        db();
+        $dbOpen = true;
+    } catch (Throwable $e) {
+        $dbError = $e->getMessage();
+    }
+    respond([
+        'ok' => true,
+        'php' => PHP_VERSION,
+        'php_ok' => PHP_VERSION_ID >= 80100,
+        'pdo_sqlite_loaded' => extension_loaded('pdo_sqlite'),
+        'data_dir_exists' => is_dir(DATA_DIR),
+        'data_dir_writable' => is_dir(DATA_DIR) ? is_writable(DATA_DIR) : is_writable(__DIR__),
+        'db_openable' => $dbOpen,
+        'db_error' => $dbError,
+        'server_user_can_write_db' => file_exists(DB_FILE) ? is_writable(DB_FILE) : null,
+    ]);
+}
+
 $raw = file_get_contents('php://input');
 if ($raw === false || strlen($raw) > 64 * 1024) {
     fail('bad_request');
