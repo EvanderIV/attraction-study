@@ -206,6 +206,12 @@ html.perf-mid .card::before {
   margin-bottom: 1rem;
 }
 
+.policy-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .card-body {
   min-height: 0;
   overflow-y: auto;
@@ -600,6 +606,61 @@ html.perf-low .nav-arrow { backdrop-filter: none; background: rgba(30, 36, 60, 0
 .scatter-wrap .trend { stroke: hsl(var(--hue-a) 90% 70%); stroke-width: 2; stroke-linecap: round; }
 .scatter-wrap .you-dot { fill: #fff; stroke: hsl(var(--hue-c) 90% 65%); stroke-width: 3; }
 .scatter-wrap .you-lbl { fill: #fff; font-weight: 700; font-size: 11px; }
+
+/* Free-text card */
+.text-input {
+  width: 100%;
+  resize: none;
+  font: inherit;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  line-height: 1.5;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.text-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.text-input::placeholder { color: rgba(170, 178, 208, 0.55); }
+
+.pub-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.pub-check input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: hsl(var(--hue-a) 70% 60%);
+  cursor: pointer;
+}
+
+/* Fantasy quotes on the compare card */
+.fantasy-list { margin-bottom: 1rem; }
+.fantasy-head {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.fantasy-quote {
+  margin: 0 0 0.5rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 3px solid hsl(var(--hue-c) 70% 60% / 0.6);
+  border-radius: 0 12px 12px 0;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  font-style: italic;
+  color: var(--text);
+}
 
 /* Share card */
 .share-row {

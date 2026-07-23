@@ -120,6 +120,94 @@ function derivedScores(array $answers): array {
     ];
 }
 
+/* ---------- Public fantasy moderation ------------------------------------
+   Applied at READ time so the ruleset can evolve without touching stored
+   data. Normalization defeats common evasion: leetspeak (f4gg0t), spacing
+   and punctuation (f.u.c.k / f u c k), repeated letters (fuuuck), and
+   diacritics. This is a starter list — swap in a maintained blocklist for
+   scale. Base tier = PG-13 (slurs, explicit sexual content, contact info).
+   Strict tier (r=cn audiences) adds profanity + BDSM references.        */
+
+/** True if any haystack contains any needle as a substring. */
+function containsAny(array $hays, array $words): bool {
+    foreach ($words as $w) {
+        foreach ($hays as $h) {
+            if (str_contains($h, $w)) return true;
+        }
+    }
+    return false;
+}
+
+/** True if any token in the padded token string matches a whole word,
+ *  or any spaced-letter cluster contains the word as a substring. */
+function containsWord(string $padded, array $words, string $clusters = ''): bool {
+    foreach ($words as $w) {
+        if (str_contains($padded, ' ' . $w . ' ')) return true;
+        if ($clusters !== '' && str_contains($clusters, $w)) return true;
+    }
+    return false;
+}
+
+function fantasyAllowed(string $t, bool $strict): bool {
+    // Contact info first, on the RAW text (leet-folding would eat digits):
+    // 7+ digits total anywhere = phone number, however it's separated.
+    if (strlen(preg_replace('/\D+/', '', $t)) >= 7) return false;
+    if (preg_match('/@[\w.]{3,}/u', $t)) return false;          // @handles / emails
+
+    $s = mb_strtolower($t, 'UTF-8');
+    if (function_exists('iconv')) {
+        $tr = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);   // strip diacritics
+        if ($tr !== false && $tr !== '') $s = strtolower($tr);
+    }
+    // Fold leetspeak.
+    $s = strtr($s, ['0'=>'o','1'=>'i','3'=>'e','4'=>'a','5'=>'s','7'=>'t','8'=>'b','$'=>'s','@'=>'a','!'=>'i','|'=>'i','+'=>'t']);
+
+    $sq  = preg_replace('/[^a-z]+/', '', $s);                   // squashed: beats spacing
+    $sqc = preg_replace('/(.)\1+/', '$1', $sq);                 // runs collapsed: beats "fuuuck"
+    $hay = [$sq, $sqc];
+    $sp  = ' ' . trim(preg_replace('/[^a-z]+/', ' ', $s)) . ' ';// tokenized: for short words
+    // Runs of single-letter tokens squashed ("such a w h o r e" -> "awhore").
+    // Word-bounded checks run on normal tokens; SUBSTRING checks run inside
+    // these clusters — they only exist when letters were deliberately spaced,
+    // so substring matching there can't hit "who reads"-style collisions.
+    $clusters = '';
+    if (preg_match_all('/(?: [a-z]){2,}(?= )/', $sp, $mm)) {
+        $clusters = str_replace(' ', '', implode('|', $mm[0]));
+    }
+
+    // Links & social handles. Short/collision-prone terms ("insta" is inside
+    // "instantly", "www" inside "awww") are word-bounded; the rest substring.
+    if (containsAny($hay, ['http', 'dotcom', 'instagram', 'snapchat',
+        'onlyfans', 'fansly', 'telegram', 'whatsapp', 'tiktok', 'discord', 'linktree',
+        'kikme', 'addme', 'dmme'])) return false;
+    if (containsWord($sp, ['www', 'insta', 'kik'], $clusters)) return false;
+
+    // Slurs — regex with letter-repeat tolerance on the squashed text.
+    foreach (['/n+i+g+g+(e+r+|a+)/', '/f+a+g+g*o+t+/', '/r+e+t+a+r+d/', '/t+r+a+n+n+(y+|i+e*)/',
+              '/c+h+i+n+k+/', '/w+e+t+b+a+c+k+/', '/b+e+a+n+e+r+/'] as $re) {
+        if (preg_match($re, $sq) || preg_match($re, $sqc)) return false;
+    }
+    if (containsWord($sp, ['kike', 'spic', 'spick', 'dyke', 'fag', 'fags'], $clusters)) return false;
+
+    // Explicit sexual content: long unambiguous terms as substrings…
+    if (containsAny($hay, ['blowjob', 'handjob', 'rimjob', 'deepthroat', 'gangbang',
+        'creampie', 'fisting', 'squirting', 'cumshot', 'bukkake', 'pegging', 'dildo',
+        'buttplug', 'hentai', 'porn', 'milf', 'nudes', 'sexting'])) return false;
+    // …short/ambiguous terms only as whole words (avoids peacock, circumstance…).
+    if (containsWord($sp, ['anal', 'cum', 'cock', 'dick', 'pussy', 'cunt', 'tits', 'boobs'], $clusters)) return false;
+
+    if ($strict) {
+        // "whore" must be word-bounded: squashed "who reads" contains it.
+        if (containsAny($hay, ['fuck', 'shit', 'bitch', 'bastard', 'goddamn',
+            'motherfuck', 'slut', 'piss'])) return false;
+        if (containsWord($sp, ['ass', 'asses', 'asshole', 'damn', 'crap', 'hoe', 'hoes', 'whore', 'whores'], $clusters)) return false;
+        if (containsAny($hay, ['bdsm', 'bondage', 'dominatrix', 'submissive', 'shibari',
+            'fetish', 'kink', 'spank', 'choke', 'choking', 'sadis', 'masochis', 'domme',
+            'handcuff', 'blindfold', 'leash', 'degrad'])) return false;
+    }
+    return true;
+}
+
 /** Pearson r + least-squares fit. Returns null when degenerate. */
 function pearson(array $xs, array $ys): ?array {
     $n = count($xs);
@@ -143,6 +231,11 @@ function pearson(array $xs, array $ys): ?array {
         'intercept' => round($my - $slope * $mx, 4),
         'n' => $n,
     ];
+}
+
+// CLI test harnesses can include this file for its functions only.
+if (PHP_SAPI === 'cli' && defined('STUDY_API_TEST')) {
+    return;
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -203,6 +296,9 @@ try {
             if (!is_array($answers) || $answers === []) {
                 fail('missing_answers');
             }
+            if (isset($answers['fantasy']) && is_string($answers['fantasy'])) {
+                $answers['fantasy'] = mb_substr(trim($answers['fantasy']), 0, 300);
+            }
             // Minimal server-side sanity on the profile fields we aggregate by.
             $profile = is_array($body['profile'] ?? null) ? $body['profile'] : [];
             $sex     = in_array($profile['sex'] ?? '', ['Male', 'Female'], true) ? $profile['sex'] : null;
@@ -242,13 +338,21 @@ try {
 
         case 'stats': {
             // Personalized aggregates: caller must have a submitted response.
-            $stmt = db()->prepare('SELECT answers_json FROM responses WHERE device_fp = ? LIMIT 1');
+            $strict = !empty($body['strict']);
+            $stmt = db()->prepare('SELECT sex, answers_json FROM responses WHERE device_fp = ? LIMIT 1');
             $stmt->execute([$deviceFp]);
-            $mine = $stmt->fetchColumn();
-            if ($mine === false) {
+            $me = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($me === false) {
                 fail('not_found', 404);
             }
-            $myAnswers = json_decode((string) $mine, true) ?: [];
+            $myAnswers = json_decode((string) $me['answers_json'], true) ?: [];
+            $mySex = $me['sex'];
+            // Strict applies to Christian respondents however that was
+            // established — self-selected answer, r=cn preset, or the
+            // client-sent flag. Server-side check is authoritative.
+            if (($myAnswers['religion'] ?? null) === 'Christian') {
+                $strict = true;
+            }
 
             $dist = [];          // qid -> value -> count (whitelisted only)
             $pairData = [
@@ -262,8 +366,11 @@ try {
                 'extra_comm'  => ['extraversion', 'communication'],
             ];
 
+            $myScores = derivedScores($myAnswers);
+
             $total = 0;
-            foreach (db()->query('SELECT answers_json FROM responses') as $row) {
+            $fanCands = [];   // public fantasies from same-sex respondents
+            foreach (db()->query('SELECT device_fp, sex, orientation, answers_json FROM responses') as $row) {
                 $ans = json_decode($row['answers_json'], true);
                 if (!is_array($ans)) continue;
                 $total++;
@@ -281,9 +388,29 @@ try {
                         $pairData[$pid]['ys'][] = round($scores[$yk], 2);
                     }
                 }
-            }
 
-            $myScores = derivedScores($myAnswers);
+                // Fantasy candidates: not mine, same biological sex, consented
+                // public, (strict: straight respondents only), passes filter.
+                if ($row['device_fp'] === $deviceFp) continue;
+                if ($row['sex'] !== $mySex) continue;
+                if (($ans['fantasy_public'] ?? true) === false) continue;
+                if ($strict && $row['orientation'] !== 'Straight') continue;
+                $ft = $ans['fantasy'] ?? null;
+                if (!is_string($ft) || mb_strlen(trim($ft)) < 3) continue;
+                $ft = mb_substr(trim($ft), 0, 200);
+                if (!fantasyAllowed($ft, $strict)) continue;
+                // "Similar" = closest on the derived behavior scores.
+                $d = 0.0; $k = 0;
+                foreach (['selfishness', 'extraversion', 'looks'] as $sk) {
+                    if ($scores[$sk] !== null && $myScores[$sk] !== null) {
+                        $d += abs($scores[$sk] - $myScores[$sk]);
+                        $k++;
+                    }
+                }
+                $fanCands[] = ['d' => $k ? $d / $k : 9.0, 't' => $ft];
+            }
+            usort($fanCands, fn($a, $b) => $a['d'] <=> $b['d']);
+            $fantasies = array_column(array_slice($fanCands, 0, 6), 't');
             $pairs = [];
             foreach ($pairAxes as $pid => [$xk, $yk]) {
                 $xs = $pairData[$pid]['xs'];
@@ -305,7 +432,7 @@ try {
                 ];
             }
 
-            respond(['ok' => true, 'n' => $total, 'dist' => $dist, 'pairs' => $pairs]);
+            respond(['ok' => true, 'n' => $total, 'dist' => $dist, 'pairs' => $pairs, 'fantasies' => $fantasies]);
         }
 
         default:

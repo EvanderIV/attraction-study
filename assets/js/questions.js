@@ -266,10 +266,13 @@
       title: "My {partner} should spend money on {themself} sometimes.",
     },
     {
-      id: "l_save_money",   // pilot DI: 2
+      // Replaced l_save_money ("…help me save money for expensive occasions",
+      // pilot DI: 2) — wording confused respondents (whose money? saved by
+      // whom? what occasion?). New id so old rows never mix with new ones.
+      id: "l_shared_finances",
       type: "likert",
       kicker: "Agree or disagree?",
-      title: "My {partner} should help me save money for expensive occasions.",
+      title: "My {partner} and I should share one bank account for everything.",
     },
     {
       id: "v_f_spoiled",   // entitlement
@@ -458,9 +461,17 @@
       type: "multi",
       kicker: "The balance",
       title: "Which qualities would make you commit to {them} long-term?",
-      sub: "Pick up to 3.",
-      maxPicks: 3,
+      sub: "Pick up to 4.",
+      maxPicks: 4,
       options: ["Loyalty", "Humor", "Ambition", "Kindness", "Intelligence", "Passion", "Stability", "Adventurousness"],
+    },
+    {
+      id: "fantasy",
+      type: "text",
+      kicker: "Last one",
+      title: "What’s an unspoken fantasy you’d want in a {partner}?",
+      sub: "A sentence or two — keep it PG-13. Anonymous either way; public answers may be shown (filtered) to other quiz-takers.",
+      placeholder: "I’ve always wished for…",
     },
   ];
 
@@ -478,7 +489,7 @@
       emoji: "✨",
       kicker: "Welcome",
       title: "The Attraction Study",
-      sub: "A quick quiz about what the body and mind find attractive. Anonymous, one response per person. Swipe or scroll through the cards — your progress saves automatically.",
+      sub: "A quick quiz about what the body and mind find attractive. Anonymous, one response per person. Swipe or scroll through the cards — your progress saves automatically. <a class=\"policy-link\" href=\"/privacy-policy\" target=\"_blank\" rel=\"noopener\">Privacy policy</a>",
       cta: "Start",
     });
 

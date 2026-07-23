@@ -170,6 +170,7 @@
     if (card.type === "diagram") {
       return card.parts.every((p) => a && a[p.id] !== undefined);
     }
+    if (card.type === "text") return typeof a === "string" && a.trim().length >= 3;
     return true;
   }
 
@@ -245,6 +246,7 @@
       case "scale":   renderScale(card, body); break;
       case "likert":  renderLikert(card, body); break;
       case "diagram": renderDiagram(card, body, inner); break;
+      case "text":    renderText(card, body, inner); break;
       case "submit":  renderSubmit(card, body, inner); break;
       case "statpct": renderStatPct(card, body); break;
       case "scatter": renderScatter(card, body); break;
@@ -591,8 +593,14 @@
       id: "_r_share", type: "share", emoji: "💬", kicker: "That’s you",
       title: "Compare notes",
       sub: "Send the quiz to a friend and compare crowd stats — the wording shuffles between people, the numbers don’t.",
+      fantasies: Array.isArray(stats.fantasies) ? stats.fantasies : [],
     });
     return cards;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (m) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
   }
 
   // ---- Share card --------------------------------------------------------
@@ -623,6 +631,17 @@
   }
 
   function renderShare(card, body) {
+    // Public fantasies from similar respondents of the same biological sex,
+    // server-filtered before they ever reach the client.
+    if (card.fantasies && card.fantasies.length) {
+      const list = el("div", "fantasy-list");
+      list.appendChild(el("div", "fantasy-head", "Unspoken fantasies from people like you"));
+      card.fantasies.forEach((f) => {
+        list.appendChild(el("blockquote", "fantasy-quote", "“" + escapeHtml(f) + "”"));
+      });
+      body.appendChild(list);
+    }
+
     const row = el("div", "share-row");
     row.appendChild(el("span", "share-link", SHARE_URL_DISPLAY));
     const copyBtn = el("button", "copy-btn",
@@ -703,13 +722,62 @@
   async function fetchStats() {
     await ensureFingerprint();
     try {
-      const res = await api("stats", { fingerprint: state.fp });
+      const res = await api("stats", {
+        fingerprint: state.fp,
+        // Christian respondents (self-selected or via r=cn preset) get the
+        // stricter fantasy filter. The server also derives this from the
+        // stored row, so a missing local answer can't weaken it.
+        strict: state.answers.religion === "Christian",
+      });
       if (res.ok) {
         state.stats = res;
         rebuildDeck(state.index);
         toast("Your results are ready — keep scrolling ↓");
       }
     } catch (e) { /* stats are a bonus; the thank-you stands alone */ }
+  }
+
+  // Free-text answer with a public-consent checkbox in the footer.
+  // The public flag is stored alongside as "<id>_public" (default true).
+  function renderText(card, body, inner) {
+    const pubKey = card.id + "_public";
+    if (state.answers[pubKey] === undefined) state.answers[pubKey] = true;
+
+    const ta = document.createElement("textarea");
+    ta.className = "text-input";
+    ta.maxLength = 240;
+    ta.rows = 3;
+    ta.placeholder = card.placeholder || "";
+    ta.value = state.answers[card.id] || "";
+    ta.addEventListener("input", () => {
+      const was = isAnswered(card);
+      state.answers[card.id] = ta.value;
+      if (!was && isAnswered(card)) buzz();
+      nextBtn.disabled = !isAnswered(card);
+      saveState();
+      updateChrome();
+    });
+    body.appendChild(ta);
+
+    const foot = el("div", "card-foot");
+    const lab = el("label", "pub-check");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = state.answers[pubKey] !== false;
+    cb.addEventListener("change", () => {
+      state.answers[pubKey] = cb.checked;
+      saveState();
+    });
+    lab.appendChild(cb);
+    lab.appendChild(el("span", "", "Share my answer publicly (anonymous)"));
+    foot.appendChild(lab);
+
+    const nextBtn = el("button", "btn", "Next");
+    nextBtn.type = "button";
+    nextBtn.disabled = !isAnswered(card);
+    nextBtn.addEventListener("click", () => go(state.index + 1));
+    foot.appendChild(nextBtn);
+    inner.appendChild(foot);
   }
 
   function renderSubmit(card, body, inner) {
@@ -999,6 +1067,9 @@
   }, { passive: true });
 
   window.addEventListener("keydown", (e) => {
+    // Never hijack keys while the user is typing in a field.
+    const tag = e.target && e.target.tagName;
+    if (tag === "TEXTAREA" || tag === "INPUT") return;
     if (e.key === "ArrowDown" || e.key === "PageDown") { e.preventDefault(); go(state.index + 1); }
     if (e.key === "ArrowUp" || e.key === "PageUp") { e.preventDefault(); go(state.index - 1); }
   });
