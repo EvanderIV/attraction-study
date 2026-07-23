@@ -162,7 +162,7 @@
 
   function isAnswered(card) {
     if (!card) return false;
-    if (card.type === "info" || card.type === "statpct" || card.type === "scatter") return true;
+    if (["info", "statpct", "scatter", "share"].includes(card.type)) return true;
     if (card.type === "submit") return state.done;
     const a = state.answers[card.id];
     if (a === undefined || a === null) return false;
@@ -248,6 +248,7 @@
       case "submit":  renderSubmit(card, body, inner); break;
       case "statpct": renderStatPct(card, body); break;
       case "scatter": renderScatter(card, body); break;
+      case "share":   renderShare(card, body); break;
     }
     return root;
   }
@@ -587,12 +588,77 @@
     }
 
     cards.push({
-      id: "_r_share", type: "info", emoji: "💬", kicker: "That’s you",
+      id: "_r_share", type: "share", emoji: "💬", kicker: "That’s you",
       title: "Compare notes",
-      sub: "Screenshot your favorite card and see whether your friends who took the quiz got the same one — the wording changes, the numbers don’t.",
-      cta: "Done",
+      sub: "Send the quiz to a friend and compare crowd stats — the wording shuffles between people, the numbers don’t.",
     });
     return cards;
+  }
+
+  // ---- Share card --------------------------------------------------------
+
+  const SHARE_URL = "https://eminich.com/s/as";
+  const SHARE_URL_DISPLAY = "eminich.com/s/as";
+
+  async function copyText(t) {
+    try {
+      await navigator.clipboard.writeText(t);
+      return true;
+    } catch (e) {
+      // Legacy fallback for older mobile browsers
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = t;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        ta.remove();
+        return ok;
+      } catch (e2) {
+        return false;
+      }
+    }
+  }
+
+  function renderShare(card, body) {
+    const row = el("div", "share-row");
+    row.appendChild(el("span", "share-link", SHARE_URL_DISPLAY));
+    const copyBtn = el("button", "copy-btn",
+      `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`);
+    copyBtn.type = "button";
+    copyBtn.setAttribute("aria-label", "Copy quiz link");
+    copyBtn.addEventListener("click", async () => {
+      const ok = await copyText(SHARE_URL);
+      if (ok) {
+        buzz();
+        toast("Link copied to your clipboard");
+      } else {
+        toast("Couldn’t copy — long-press the link instead");
+      }
+    });
+    row.appendChild(copyBtn);
+    body.appendChild(row);
+
+    const shareBtn = el("button", "btn share-cta", "Share the quiz");
+    shareBtn.type = "button";
+    shareBtn.addEventListener("click", async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "The Attraction Study",
+            text: "What do you actually find attractive? Quick, anonymous quiz:",
+            url: SHARE_URL,
+          });
+        } catch (e) { /* user dismissed the sheet — not an error */ }
+      } else {
+        const ok = await copyText(SHARE_URL);
+        toast(ok ? "Link copied — paste it anywhere" : "Couldn’t copy — long-press the link instead");
+        if (ok) buzz();
+      }
+    });
+    body.appendChild(shareBtn);
   }
 
   function renderStatPct(card, body) {
@@ -722,8 +788,14 @@
     body.appendChild(el("h2", "card-title ok-text", "Thank you!"));
     body.appendChild(el("p", "card-sub", msg ||
       (state.stats
-        ? "Your response has been recorded. Scroll on to see how you compare with everyone else ↓"
+        ? "Your response has been recorded."
         : "Your response has been recorded. Crunching your personalized results…")));
+    if (state.stats) {
+      const b = el("button", "btn", "See how I compare");
+      b.type = "button";
+      b.addEventListener("click", () => go(state.index + 1));
+      body.appendChild(b);
+    }
   }
 
   function idxOf(id) {

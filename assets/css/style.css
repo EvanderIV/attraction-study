@@ -601,6 +601,42 @@ html.perf-low .nav-arrow { backdrop-filter: none; background: rgba(30, 36, 60, 0
 .scatter-wrap .you-dot { fill: #fff; stroke: hsl(var(--hue-c) 90% 65%); stroke-width: 3; }
 .scatter-wrap .you-lbl { fill: #fff; font-weight: 700; font-size: 11px; }
 
+/* Share card */
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.6rem 0.7rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.06);
+  margin-bottom: 0.9rem;
+}
+.share-link {
+  flex: 1;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  user-select: all;               /* long-press selects the whole link */
+  -webkit-user-select: all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.copy-btn {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border);
+  color: var(--text);
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.copy-btn:active { transform: scale(0.9); }
+.share-cta { width: 100%; }
+
 .err-text { color: var(--danger); font-size: 0.85rem; margin-top: 0.6rem; }
 .ok-text { color: var(--ok); }
 
