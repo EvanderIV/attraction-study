@@ -597,8 +597,8 @@
 
   // ---- Share card --------------------------------------------------------
 
-  const SHARE_URL = "https://eminich.com/s/as";
-  const SHARE_URL_DISPLAY = "eminich.com/s/as";
+  const SHARE_URL = "https://eminich.com/s/attr-study";
+  const SHARE_URL_DISPLAY = "eminich.com/s/attr-study";
 
   async function copyText(t) {
     try {
@@ -791,7 +791,7 @@
         ? "Your response has been recorded."
         : "Your response has been recorded. Crunching your personalized results…")));
     if (state.stats) {
-      const b = el("button", "btn", "See how I compare");
+      const b = el("button", "btn", "See how you compare");
       b.type = "button";
       b.addEventListener("click", () => go(state.index + 1));
       body.appendChild(b);
